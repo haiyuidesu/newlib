@@ -1,4 +1,4 @@
-ARCH                        := aarch64-none-darwin
+ARCH                        := aarch64-elf
 SRC                         := src
 BUILD                       := build
 # XXX: This makes PREFIX an absolute path, which breaks if there's spaces in any path component and
@@ -38,28 +38,21 @@ endif
 
 ifdef EMBEDDED_LLVM_BINDIR
     EMBEDDED_CC             ?= $(EMBEDDED_LLVM_BINDIR)/clang
-    EMBEDDED_LD             ?= $(EMBEDDED_LLVM_BINDIR)/ld64.lld
+    EMBEDDED_LD             ?= $(EMBEDDED_LLVM_BINDIR)/ld.lld
     EMBEDDED_AR             ?= $(EMBEDDED_LLVM_BINDIR)/llvm-ar
     EMBEDDED_RANLIB         ?= $(EMBEDDED_LLVM_BINDIR)/llvm-ranlib
 endif
 
 CLANG                       ?= clang
 
-ifeq ($(HOST_OS),Darwin)
-    EMBEDDED_CC             ?= xcrun -sdk iphoneos clang
-    EMBEDDED_AR             ?= ar
-    EMBEDDED_RANLIB         ?= ranlib
-else
-ifeq ($(HOST_OS),Linux)
-    EMBEDDED_CC             ?= $(CLANG)
-    EMBEDDED_LD             ?= lld
-    EMBEDDED_AR             ?= llvm-ar
-    EMBEDDED_RANLIB         ?= llvm-ranlib
-endif
-endif
+# Default to aarch64-elf
+EMBEDDED_CC                 ?= $(CLANG)
+EMBEDDED_LD                 ?= ld.lld
+EMBEDDED_AR                 ?= llvm-ar
+EMBEDDED_RANLIB             ?= llvm-ranlib
 
 ifdef EMBEDDED_LD
-    EMBEDDED_LDFLAGS        ?= -fuse-ld='$(EMBEDDED_LD)'
+    EMBEDDED_LDFLAGS        ?= -fuse-ld='$(EMBEDDED_LD)' -m aarch64elf
 endif
 
 # Safeguard against GNU ar/ranlib
@@ -70,7 +63,7 @@ ifneq ($(shell $(EMBEDDED_RANLIB) -V 2>&1 | grep -F 'GNU ranlib' || true),)
     $(error GNU ranlib detected, need LLVM ranlib)
 endif
 
-EMBEDDED_CC_FLAGS           ?= --target=arm64-apple-ios12.0 -std=gnu17 -Wall -Os -flto -moutline -ffreestanding -nostdlibinc -fno-blocks -U__nonnull -D_LDBL_EQ_DBL -DABORT_PROVIDED -DGETREENT_PROVIDED -DREENTRANT_SYSCALLS_PROVIDED -D__DYNAMIC_REENT__ $(EMBEDDED_CFLAGS) $(NEWLIB_CFLAGS)
+EMBEDDED_CC_FLAGS           ?= --target=aarch64-elf -std=gnu17 -Wall -Os -flto -moutline -ffreestanding -nostdlibinc -fno-blocks -U__nonnull -D_LDBL_EQ_DBL -DABORT_PROVIDED -DGETREENT_PROVIDED -DREENTRANT_SYSCALLS_PROVIDED -D__DYNAMIC_REENT__ $(EMBEDDED_CFLAGS) $(NEWLIB_CFLAGS)
 EMBEDDED_LD_FLAGS           ?= $(EMBEDDED_LDFLAGS) $(NEWLIB_LDFLAGS)
 
 .PHONY: all always clean distclean
